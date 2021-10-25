@@ -386,6 +386,7 @@ name = "nukedns"
 version = "0.1.0"
 dependencies = [
  "dotenv",
+ "lazy_static",
  "local-ip-address",
  "log",
  "pretty_env_logger",
