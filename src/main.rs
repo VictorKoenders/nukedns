@@ -1,7 +1,17 @@
+use log::LevelFilter;
+use log4rs::{
+    config::{Appender, Config, Root},
+    encode::pattern::PatternEncoder,
+};
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     time::Duration,
 };
+
+#[cfg(debug_assertions)]
+use log4rs::append::console::ConsoleAppender;
+#[cfg(not(debug_assertions))]
+use log4rs::append::file::FileAppender;
 
 mod dns;
 mod resolve;
@@ -9,7 +19,29 @@ mod resolve;
 #[tokio::main]
 async fn main() {
     let _ = dotenv::dotenv();
-    pretty_env_logger::init();
+
+    #[cfg(not(debug_assertions))]
+    let log_target = FileAppender::builder()
+        .encoder(Box::new(PatternEncoder::new("{l} - {m}\n")))
+        .build("/var/log/nukedns.log")
+        .unwrap();
+
+    println!("Logging to /var/log/nukedns.log");
+    #[cfg(debug_assertions)]
+    let log_target = ConsoleAppender::builder()
+        .encoder(Box::new(PatternEncoder::new("{l} - {m}\n")))
+        .build();
+
+    let config = Config::builder()
+        .appender(Appender::builder().build("log_target", Box::new(log_target)))
+        .build(
+            Root::builder()
+                .appender("log_target")
+                .build(LevelFilter::Info),
+        )
+        .unwrap();
+
+    log4rs::init_config(config).unwrap();
 
     resolve::init().await;
     dns::spawn(&[get_desired_bind_addr()]);
