@@ -1,8 +1,7 @@
 use lazy_static::lazy_static;
 use std::{
     collections::HashMap,
-    fs::File,
-    io::{BufRead, BufReader},
+    io::{BufRead, BufReader, Cursor},
     time::{Duration, SystemTime},
 };
 use tokio::sync::RwLock;
@@ -46,9 +45,10 @@ pub async fn init() {
     tokio::spawn(cache_invalidator());
 }
 
+static DENY_LIST: &str = include_str!("../denylist.txt");
+
 fn parse_denylist() -> Option<HashMap<String, bool>> {
-    let file = File::open("./denylist.txt").unwrap();
-    let reader = BufReader::new(file);
+    let reader = BufReader::new(Cursor::new(DENY_LIST));
     let mut deny_entries = HashMap::<String, bool>::new();
 
     for domain in reader.lines().flatten() {
