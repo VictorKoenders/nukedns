@@ -20,16 +20,18 @@ mod resolve;
 async fn main() {
     let _ = dotenv::dotenv();
 
+    const FORMAT: &str = "[{d(%H:%M:%S)}] {l}: {t} - {m}\n";
+
     #[cfg(not(debug_assertions))]
     let log_target = FileAppender::builder()
-        .encoder(Box::new(PatternEncoder::new("{l} - {m}\n")))
+        .encoder(Box::new(PatternEncoder::new(FORMAT)))
         .build("/var/log/nukedns.log")
         .unwrap();
 
     println!("Logging to /var/log/nukedns.log");
     #[cfg(debug_assertions)]
     let log_target = ConsoleAppender::builder()
-        .encoder(Box::new(PatternEncoder::new("{l} - {m}\n")))
+        .encoder(Box::new(PatternEncoder::new(FORMAT)))
         .build();
 
     let config = Config::builder()
