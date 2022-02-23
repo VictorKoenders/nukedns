@@ -1,0 +1,12 @@
+[Unit]
+Description=NukeDNS service
+
+[Service]
+User=root
+WorkingDirectory=/usr/bin/
+ExecStart=/usr/bin/nukedns
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+
