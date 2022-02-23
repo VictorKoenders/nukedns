@@ -58,10 +58,8 @@ fn query_into_readable_name(label: &[LowerQuery]) -> Vec<String> {
 async fn handle_request(socket: Arc<UdpSocket>, src: SocketAddr, partial_buf: Vec<u8>) {
     let mut decoder = BinDecoder::new(&partial_buf);
     let request = MessageRequest::read(&mut decoder).unwrap();
-    log::info!(
-        "Incoming request for {:?}",
-        query_into_readable_name(request.queries())
-    );
+    let target = query_into_readable_name(request.queries()).join(".");
+    log::info!(target: &target, "Incoming request",);
 
     let mut message = Message::new();
     message
@@ -77,6 +75,7 @@ async fn handle_request(socket: Arc<UdpSocket>, src: SocketAddr, partial_buf: Ve
     let query = request.queries()[0].to_owned();
     let domain = query.name().to_string().trim_end_matches('.').to_string();
     if crate::resolve::is_deny(&domain).await {
+        log::info!(target: &target, "  in deny list",);
         message
             .set_response_code(ResponseCode::NXDomain)
             .set_authoritative(true);
@@ -84,13 +83,17 @@ async fn handle_request(socket: Arc<UdpSocket>, src: SocketAddr, partial_buf: Ve
         let answers = if let Some(answer) =
             crate::resolve::get_cached(domain.clone(), query.query_type()).await
         {
+            log::info!(target: &target, "  in cache");
             answer
         } else {
+            log::info!(target: &target, "  fetching from upstream");
             let server_answers = recurse(&query).await.unwrap();
             crate::resolve::add_cache(domain.clone(), query.query_type(), server_answers.clone())
                 .await;
+            log::info!(target: &target, "  upstream returned");
             server_answers
         };
+        log::info!(target: &target, "  responding with {:?}", answers);
 
         message
             .add_query(request.queries()[0].original().to_owned())
@@ -104,7 +107,6 @@ async fn handle_request(socket: Arc<UdpSocket>, src: SocketAddr, partial_buf: Ve
         message.emit(&mut encoder).unwrap();
     }
 
-    // tx.send(byte_vec);
     socket.send_to(byte_vec.as_slice(), src).await.unwrap();
 }
 
