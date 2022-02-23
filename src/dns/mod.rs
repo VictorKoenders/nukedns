@@ -40,26 +40,9 @@ pub fn spawn(addr: &[SocketAddr]) {
     }
 }
 
-fn query_into_readable_name(label: &[LowerQuery]) -> Vec<String> {
-    label
-        .iter()
-        .map(|q| {
-            let name = Name::from(q.name());
-            name.iter().fold(String::new(), |mut str, label| {
-                if !str.is_empty() {
-                    str += "."
-                }
-                str + std::str::from_utf8(label).unwrap_or("[invalid_utf8]")
-            })
-        })
-        .collect()
-}
-
 async fn handle_request(socket: Arc<UdpSocket>, src: SocketAddr, partial_buf: Vec<u8>) {
     let mut decoder = BinDecoder::new(&partial_buf);
     let request = MessageRequest::read(&mut decoder).unwrap();
-    let target = query_into_readable_name(request.queries()).join(".");
-    log::info!(target: &target, "Incoming request",);
 
     let mut message = Message::new();
     message
@@ -74,8 +57,9 @@ async fn handle_request(socket: Arc<UdpSocket>, src: SocketAddr, partial_buf: Ve
 
     let query = request.queries()[0].to_owned();
     let domain = query.name().to_string().trim_end_matches('.').to_string();
+    log::info!(target: &domain, "Incoming request",);
     if crate::resolve::is_deny(&domain).await {
-        log::info!(target: &target, "  in deny list",);
+        log::info!(target: &domain, "  in deny list",);
         message
             .set_response_code(ResponseCode::NXDomain)
             .set_authoritative(true);
@@ -83,17 +67,24 @@ async fn handle_request(socket: Arc<UdpSocket>, src: SocketAddr, partial_buf: Ve
         let answers = if let Some(answer) =
             crate::resolve::get_cached(domain.clone(), query.query_type()).await
         {
-            log::info!(target: &target, "  in cache");
+            log::info!(target: &domain, "  in cache");
             answer
         } else {
-            log::info!(target: &target, "  fetching from upstream");
+            log::info!(target: &domain, "  fetching from upstream");
             let server_answers = recurse(&query).await.unwrap();
             crate::resolve::add_cache(domain.clone(), query.query_type(), server_answers.clone())
                 .await;
-            log::info!(target: &target, "  upstream returned");
+            log::info!(target: &domain, "  upstream returned");
             server_answers
         };
-        log::info!(target: &target, "  responding with {:?}", answers);
+        log::info!(
+            target: &domain,
+            "  responding with {:?}",
+            answers
+                .iter()
+                .map(|a| a.rdata().clone())
+                .collect::<Vec<_>>()
+        );
 
         message
             .add_query(request.queries()[0].original().to_owned())
