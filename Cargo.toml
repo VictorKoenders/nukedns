@@ -10,7 +10,7 @@ edition = "2018"
 trust-dns-proto = { version = "0.20.4", default-features = false }
 trust-dns-client = "0.20.0"
 trust-dns-server = "0.20.4"
-tokio = { version = "1.16", features = ["full"] }
+tokio = { version = "1.17", features = ["full"] }
 local-ip-address = "0.4.4"
 log = "0.4.14"
 log4rs = "1.0"
