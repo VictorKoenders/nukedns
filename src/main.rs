@@ -1,11 +1,7 @@
 use log::LevelFilter;
 use log4rs::{
-    config::{Appender, Config, Root},
+    config::{Appender, Root},
     encode::pattern::PatternEncoder,
-};
-use std::{
-    net::{IpAddr, Ipv4Addr, SocketAddr},
-    time::Duration,
 };
 
 #[cfg(debug_assertions)]
@@ -34,7 +30,7 @@ async fn main() {
         .encoder(Box::new(PatternEncoder::new(FORMAT)))
         .build();
 
-    let config = Config::builder()
+    let config = log4rs::Config::builder()
         .appender(Appender::builder().build("log_target", Box::new(log_target)))
         .build(
             Root::builder()
@@ -45,30 +41,46 @@ async fn main() {
 
     log4rs::init_config(config).unwrap();
 
+    let config = Config::load();
+
     resolve::init().await;
-    dns::spawn(&[get_desired_bind_addr()]);
-    loop {
-        tokio::time::sleep(Duration::from_secs(60)).await;
+    let handles = dns::spawn(config);
+    let _ = futures::future::select_all(handles).await;
+}
+
+#[derive(serde::Deserialize)]
+pub struct Config {
+    pub host: Vec<ConfigHost>,
+}
+
+impl Default for Config {
+    fn default() -> Config {
+        Config {
+            host: vec![ConfigHost {
+                address: "0.0.0.0".to_string(),
+                port: 25,
+            }],
+        }
     }
 }
 
-fn get_desired_bind_addr() -> SocketAddr {
-    let addr = if let Some(addr) = std::env::var("HOST")
-        .ok()
-        .and_then(|host| host.parse().ok())
-    {
-        addr
-    } else if let Ok(addr) = local_ip_address::local_ip() {
-        addr
-    } else {
-        IpAddr::V4(Ipv4Addr::LOCALHOST)
-    };
+impl Config {
+    pub fn load() -> Config {
+        #[cfg(debug_assertions)]
+        let path = "./nukedns.toml";
+        #[cfg(not(debug_assertions))]
+        let path = "/etc/nukedns.toml";
 
-    let port = if let Some(port) = std::env::var("PORT").ok().and_then(|p| p.parse().ok()) {
-        port
-    } else {
-        53u16
-    };
+        fn load(path: &str) -> Option<Config> {
+            let contents = std::fs::read_to_string(path).ok()?;
+            toml::from_str(&contents).ok()
+        }
+        load(path).unwrap_or_default()
+    }
+}
 
-    (addr, port).into()
+#[derive(serde::Deserialize)]
+pub struct ConfigHost {
+    pub address: String,
+    pub port: u16,
 }

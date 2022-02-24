@@ -1,5 +1,5 @@
 use std::{net::SocketAddr, sync::Arc};
-use tokio::net::UdpSocket;
+use tokio::{net::UdpSocket, task::JoinHandle};
 use trust_dns_client::{
     client::{AsyncClient, ClientHandle},
     op::LowerQuery,
@@ -12,11 +12,12 @@ use trust_dns_proto::{
 };
 use trust_dns_server::authority::MessageRequest;
 
-pub fn spawn(addr: &[SocketAddr]) {
-    for addr in addr.iter().copied() {
-        tokio::spawn(async move {
+pub fn spawn(config: super::Config) -> Vec<JoinHandle<()>> {
+    let mut handles = Vec::with_capacity(config.host.len());
+    for addr in config.host {
+        let handle = tokio::spawn(async move {
             let socket = Arc::new(
-                UdpSocket::bind(addr)
+                UdpSocket::bind((addr.address, addr.port))
                     .await
                     .expect("Could not spawn DNS thread"),
             );
@@ -37,7 +38,9 @@ pub fn spawn(addr: &[SocketAddr]) {
                 });
             }
         });
+        handles.push(handle);
     }
+    handles
 }
 
 async fn handle_request(socket: Arc<UdpSocket>, src: SocketAddr, partial_buf: Vec<u8>) {
