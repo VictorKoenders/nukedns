@@ -13,7 +13,7 @@ trust-dns-server = "0.20"
 tokio = { version = "1.17", features = ["full"] }
 local-ip-address = "0.4"
 log = "0.4"
-log4rs = "1.0"
+log4rs = "1.1"
 dotenv = "0.15"
 lazy_static = "1.4"
 toml = "0.5"
