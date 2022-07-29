@@ -19,12 +19,14 @@ async fn main() {
     const FORMAT: &str = "[{d(%H:%M:%S)}] {l}: {t} - {m}\n";
 
     #[cfg(not(debug_assertions))]
-    let log_target = FileAppender::builder()
-        .encoder(Box::new(PatternEncoder::new(FORMAT)))
-        .build("/var/log/nukedns.log")
-        .unwrap();
+    let log_target = {
+        println!("Logging to /var/log/nukedns.log");
+        FileAppender::builder()
+            .encoder(Box::new(PatternEncoder::new(FORMAT)))
+            .build("/var/log/nukedns.log")
+            .unwrap()
+    };
 
-    println!("Logging to /var/log/nukedns.log");
     #[cfg(debug_assertions)]
     let log_target = ConsoleAppender::builder()
         .encoder(Box::new(PatternEncoder::new(FORMAT)))

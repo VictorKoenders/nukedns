@@ -30,7 +30,7 @@ pub fn spawn(config: super::Config) -> Vec<JoinHandle<()>> {
                     .recv_from(&mut buf)
                     .await
                     .expect("Could not read from UDP socket");
-                let partial_buf = (&buf[..len]).to_vec();
+                let partial_buf = buf[..len].to_vec();
                 let sock = socket.clone();
 
                 tokio::spawn(async move {
