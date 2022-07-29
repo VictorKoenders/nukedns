@@ -1,8 +1,8 @@
 [package]
 name = "nukedns"
 version = "0.1.0"
-authors = ["Tom <mr@tomclement.nl>"]
-edition = "2018"
+authors = ["Victor Koenders <github@trangar.com", "Tom <mr@tomclement.nl>"]
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
