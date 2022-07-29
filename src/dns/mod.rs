@@ -58,7 +58,7 @@ async fn handle_request(socket: Arc<UdpSocket>, src: SocketAddr, partial_buf: Ve
         .set_authentic_data(false)
         .set_checking_disabled(false);
 
-    let query = request.queries()[0].to_owned();
+    let query = request.query().to_owned();
     let domain = query.name().to_string().trim_end_matches('.').to_string();
     log::info!(target: &domain, "Incoming request",);
     if crate::resolve::is_deny(&domain).await {
@@ -83,14 +83,11 @@ async fn handle_request(socket: Arc<UdpSocket>, src: SocketAddr, partial_buf: Ve
         log::info!(
             target: &domain,
             "  responding with {:?}",
-            answers
-                .iter()
-                .map(|a| a.rdata().clone())
-                .collect::<Vec<_>>()
+            answers.iter().map(|a| a.data()).collect::<Vec<_>>()
         );
 
         message
-            .add_query(request.queries()[0].original().to_owned())
+            .add_query(request.query().original().to_owned())
             .add_answers(answers)
             .set_response_code(ResponseCode::NoError);
     }
