@@ -7,7 +7,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-trust-dns-proto = { version = "0.21", default-features = false }
+trust-dns-proto = { version = "0.22", default-features = false }
 trust-dns-client = "0.21"
 trust-dns-server = "0.21"
 tokio = { version = "1.21", features = ["full"] }
