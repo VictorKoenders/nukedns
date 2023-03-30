@@ -17,7 +17,7 @@ log4rs = "1.2"
 dotenv = "0.15"
 lazy_static = "1.4"
 toml = "0.7"
-futures = "0.3.26"
+futures = "0.3.28"
 
 [dependencies.serde]
 version = "1.0"
